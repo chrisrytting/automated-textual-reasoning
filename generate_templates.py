@@ -1,7 +1,8 @@
 import random as random
 import numpy as np
+from tqdm import tqdm
 
-def list_to_nl(list_in):
+def list_to_nl(list_in,ix):
     """This function converts a list representing a bin and the blocks it contains to 
     a natural language expression of such.
     
@@ -12,7 +13,7 @@ def list_to_nl(list_in):
         str -- NL expression of which blocks this bin contains
     """
     #Handling different number of blocks for appropriate gammatical cases
-    rep = "Bin contains "
+    rep = "Bin {} contains ".format(ix)
     if len(list_in) == 0:
         rep += "no blocks"
     elif len(list_in) == 1:
@@ -83,21 +84,59 @@ def generate_and_log_ops(n_ops, lists):
 
 
 # Randomly generate two lists of integers which represent blocks 
-n = random.randint(0,20)
-list_1 = []
-list_2 = []
-for i in range(n):
-    random.choice((list_1, list_2)).append(i)
+def generate_lists():
+    """Randomly generate two lists of integers which represent blocks
+    
+    Returns:
+        tuple of lists -- first bin of blocks and second bin of blocks
+    """
 
-# Generate a NL description of it
-description_1 = list_to_nl(list_1)
-description_2 = list_to_nl(list_2)
-print(description_1, description_2)
+    #Generate a number of blocks between 2 and 10 but excluding 5
+    range_1 = random.randint(2,4)
+    range_2 = random.randint(6,10)
+    n = random.choice([range_1,range_2])
+    list_1 = []
+    list_2 = []
+    #Fill these empty lists randomly with the blocks
+    for i in range(n):
+        random.choice((list_1, list_2)).append(i)
+    return [list_1,list_2]
+
+def gen_nl_descriptions(lists):
+    """# Generate a NL description of it
+    
+    Arguments:
+        list_1 {int} -- Bin 1
+        list_2 {int} -- Bin 2
+    """
+    return(list_to_nl(lists[0],0),list_to_nl(lists[1],1)) 
 
 # Perform random operations on that list, coming up with NL descriptions of those operations 
-n_operations = random.randint(1,10)
-lists = [list_1,list_2]
-generate_and_log_op(lists)
+def generate_scenario():
+    """Generate random lists, a NL expression describing it, perform an operation on it and describe it in NL, and describe the final state.
 
+    Returns:
+        str -- Description of initial state, action, and final state
+    """
+    
+    lists = generate_lists()
+    is_description = '. '.join(gen_nl_descriptions(lists))
+    fs_lists, action_description = generate_and_log_op(lists)
+    fs_description = '. '.join(gen_nl_descriptions(fs_lists))
+    description = '. '.join([is_description, action_description, fs_description])
+    return description
 
-# Generate a NL description of the manipulated list
+def generate_dataset(n):
+    """Write n scenarios to a text file
+    
+    Arguments:
+        n {int} -- number of lines to write to a text file
+    """
+    f = open('blockworld.txt', 'w')
+    for i in tqdm(range(n)):
+        scenario = generate_scenario()
+        f.write(scenario+ '\n')
+    f.close()
+
+if __name__=="__main__":
+    generate_dataset(int(5e5))

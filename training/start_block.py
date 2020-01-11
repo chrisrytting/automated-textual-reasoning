@@ -8,7 +8,7 @@ if not os.path.isdir(os.path.join("models", model_name)):
 	gpt2.download_gpt2(model_name=model_name)   # model is saved into current directory under /models/124M/
 
 
-file_name = "blockworld.txt"
+file_name = "data/blockworld.txt"
 #if not os.path.isfile(file_name):
 #	url = "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt"
 #	data = requests.get(url)
@@ -21,6 +21,7 @@ sess = gpt2.start_tf_sess()
 gpt2.finetune(sess,
               file_name,
               model_name=model_name,
-              steps=1000)   # steps is max number of training steps
+              run_name='blockworld',
+              steps=1)   # steps is max number of training steps
 
-gpt2.generate(sess)
+gpt2.generate(sess, run_name='blockworld')

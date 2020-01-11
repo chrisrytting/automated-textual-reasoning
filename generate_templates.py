@@ -92,7 +92,7 @@ def generate_lists(n_objects, n_containers, obj_type,test=False):
     Arguments:
         n_objects -- number of objects to generate
         n_containers -- number of containers to place objects in
-        obj_type -- whether we want objects to be labeled as digits 'd' or common nouns 'cn'
+        obj_type -- whether we want objects to be labeled as digits 'blocks' or common nouns 'common_nouns'
 
     
     Returns:
@@ -101,10 +101,10 @@ def generate_lists(n_objects, n_containers, obj_type,test=False):
 
     #Generate a number of blocks between 2 and 10 but excluding 5
     lists = [[] for i in range(n_containers)]
-    if obj_type == 'd':
+    if obj_type == 'blocks':
         for i in range(n_objects):
             random.choice(lists).append(i)
-    elif obj_type == 'cn':
+    elif obj_type == 'common_nouns':
         if test:
             filename = 'data/common_nouns_test.txt'
         else:
@@ -143,7 +143,7 @@ def generate_scenario(n_objects,n_containers,obj_type,test=False):
     Arguments:
         n_objects {int} -- number of objects to generate
         n_containers {int}-- number of containers to sort objects into
-        obj_type {str} -- type of object we want in bins. 'd' for digits, 'cn' for common nouns.
+        obj_type {str} -- type of object we want in bins. 'blocks' for digits, 'common_nouns' for common nouns.
 
     Returns:
         str -- Description of initial state, action, and final state
@@ -151,9 +151,9 @@ def generate_scenario(n_objects,n_containers,obj_type,test=False):
     
     lists = generate_lists(n_objects,n_containers,obj_type)
     list_names = []
-    if obj_type == 'd':
+    if obj_type == 'blocks':
         list_names = ['bin {}'.format(str(i)) for i in np.arange(n_containers)]
-    elif obj_type == 'cn':
+    elif obj_type == 'common_nouns':
         if not test:
             container_names = ['box', 'bin', 'crate', 'tub', 'jar']
             list_names = random.sample(container_names,n_containers)
@@ -173,12 +173,12 @@ def generate_dataset(n_scenarios, obj_type):
     
     Arguments:
         n {int} -- number of lines to write to a text file
-        obj_type {str} -- whether we want objects to be labeled as digits 'd' or common nouns 'cn'
+        obj_type {str} -- whether we want objects to be labeled as digits 'blocks' or common nouns 'common_nouns'
         n_scenarios {int} -- The number of scenarios we want to generate
     """
-    if obj_type == 'd':
+    if obj_type == 'blocks':
         f = open('data/blockworld.txt', 'w')
-    elif obj_type == 'cn':
+    elif obj_type == 'common_nouns':
         f = open('data/objworld.txt', 'w')
     for i in tqdm(range(n_scenarios)):
         n_objects = random.randint(2,10)
@@ -191,11 +191,11 @@ def generate_dataset(n_scenarios, obj_type):
 if __name__=="__main__":
     import time
     start = time.time()
-    generate_dataset(int(5e5), 'cn')
+    #generate_dataset(int(5e5), 'common_nouns')
     print("Took {} seconds".format(time.time() - start))
     
 
-    #lists = generate_lists(10,2,'cn')
+    #lists = generate_lists(10,2,'common_nouns')
     #print(lists)
     #print(list_to_nl('Bin', lists[0]))
     #print(list_to_nl('Box',lists[1]))

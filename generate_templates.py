@@ -53,9 +53,11 @@ def generate_and_log_op(list_names, lists):
     #Draw randomly from the eligible indices to choose a target
     target_ix = np.random.choice(elig_ix)
 
-    #Take block from origin_ix and put it in target_ix
-    obj = lists[origin_ix].pop()
+    #Take random object from origin_ix and put it in target_ix
+    obj = random.choice(lists[origin_ix])
+    lists[origin_ix].remove(obj)
     lists[target_ix].append(obj)
+
 
     #Construct the NL expression of what happened and return both
     rep = 'Took {} from the {} and put it into the {}'.format(obj, dic[origin_ix], dic[target_ix])
@@ -104,19 +106,25 @@ def generate_lists(n_objects, n_containers, obj_type,test=False):
             random.choice(lists).append(i)
     elif obj_type == 'cn':
         if test:
-            filename = 'common_nouns_train.txt'
+            filename = 'data/common_nouns_test.txt'
         else:
-            filename = 'common_nouns_test.txt'
-        with open('common_nouns.txt', 'r') as f:
-            #TODO how to handle n_objects > |common_nouns.txt|
-            for i in range(n_objects):
-                word = next(f).strip()
+            filename = 'data/common_nouns_train.txt'
+
+        with open(filename, 'r') as f:
+            #Grab words from file and close it
+            all_words = f.readlines()
+            f.close()
+            #Only keep n_objects of the words and strip whitespace
+            kept_words = random.sample(all_words, n_objects)
+            words = [word.strip() for word in kept_words]
+
+            #Add proper article a/an
+            for word in words:
                 if word[0] in list('aeiou'):
                     word = 'an {}'.format(word)
                 else:
                     word = 'a {}'.format(word)
                 random.choice(lists).append(word)
-        f.close()
     return lists
 
 def gen_nl_descriptions(lists,list_names):
@@ -142,15 +150,16 @@ def generate_scenario(n_objects,n_containers,obj_type,test=False):
     """
     
     lists = generate_lists(n_objects,n_containers,obj_type)
+    list_names = []
     if obj_type == 'd':
         list_names = ['bin {}'.format(str(i)) for i in np.arange(n_containers)]
     elif obj_type == 'cn':
         if not test:
             container_names = ['box', 'bin', 'crate', 'tub', 'jar']
-            list_names = container_names[:n_containers]
+            list_names = random.sample(container_names,n_containers)
         else:
             container_names = 'tray sack hole bag room'.split()
-            list_names = container_names[:n_containers]
+            list_names = random.sample(container_names,n_containers)
     random.shuffle(list_names)
     is_description = '. '.join(gen_nl_descriptions(lists, list_names))
     fs_lists, action_description = generate_and_log_op(list_names, lists)
@@ -168,9 +177,9 @@ def generate_dataset(n_scenarios, obj_type):
         n_scenarios {int} -- The number of scenarios we want to generate
     """
     if obj_type == 'd':
-        f = open('blockworld.txt', 'w')
+        f = open('data/blockworld.txt', 'w')
     elif obj_type == 'cn':
-        f = open('objworld.txt', 'w')
+        f = open('data/objworld.txt', 'w')
     for i in tqdm(range(n_scenarios)):
         n_objects = random.randint(2,10)
         n_containers = random.randint(2,4)
@@ -180,8 +189,10 @@ def generate_dataset(n_scenarios, obj_type):
     print('Successfully generated dataset')
 
 if __name__=="__main__":
-    #print(generate_scenario(5,2,'cn'))
+    import time
+    start = time.time()
     generate_dataset(int(5e5), 'cn')
+    print("Took {} seconds".format(time.time() - start))
     
 
     #lists = generate_lists(10,2,'cn')

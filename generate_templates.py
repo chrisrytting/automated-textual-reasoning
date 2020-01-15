@@ -100,7 +100,6 @@ def generate_lists(n_objects, n_containers, obj_type,test=False):
     """
 
     #Generate a number of blocks between 2 and 10 but excluding 5
-    print(test)
     lists = [[] for i in range(n_containers)]
     if obj_type == 'blocks':
         for i in range(n_objects):

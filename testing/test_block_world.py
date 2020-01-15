@@ -61,7 +61,7 @@ if __name__=="__main__":
     gpt2.load_gpt2(sess,run_name=run_name)
     start = time.time()
     results_dic = conduct_tests(np.arange(1,2), np.arange(2,3),sess,gpt2,\
-        run_name, 'common_nouns',testing=True)
+        run_name, 'common_nouns')
     #results_dic = conduct_tests(np.arange(1,20), np.arange(2,6),sess,gpt2,\
     #    run_name, 'common_nouns')
     print('Took {} seconds to test'.format(time.time() - start))

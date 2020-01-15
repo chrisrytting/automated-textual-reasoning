@@ -1,8 +1,9 @@
 import generate_templates as gt
 import re
+from tqdm import tqdm
 
 def conduct_tests(n_objs_to_test, n_containers_to_test, sess, gpt2, \
-    run_name,scenario_type,testing=False,test_cases = 10,temperature = 0.7):
+    run_name,scenario_type,testing=False,test_cases = 20,temperature = 0.1):
     """Find accuracies on a test set for several n_objs and n_containers
     
     Arguments:
@@ -14,9 +15,9 @@ def conduct_tests(n_objs_to_test, n_containers_to_test, sess, gpt2, \
         np.array -- accuracies for each of the n_objs on axis 0 and n_containers on axis 1
     """
     results_dic = {}
-    for i, n_objs in enumerate(n_objs_to_test):
+    for i, n_objs in enumerate(tqdm(n_objs_to_test)):
         print('Iteration {}'.format(i))
-        for j, n_containers in enumerate(n_containers_to_test):
+        for j, n_containers in enumerate(tqdm(n_containers_to_test)):
             result_dic = conduct_test(n_objs,n_containers,sess, gpt2, run_name, \
                 scenario_type,test_cases=test_cases,testing=testing, temperature = temperature)
             print('Score for {}_objs_{}_containers = {}'.format(n_objs,n_containers,result_dic['score']))
@@ -30,7 +31,7 @@ def conduct_test(n_objs, n_containers, sess, gpt2, run_name, scenario_type, \
     result_dic = {}
     for i in range(test_cases):
         true_scenario = gt.generate_scenario(n_objs, n_containers, \
-            scenario_type)
+            scenario_type,test=testing)
         prefix = re.search('.*Took[^\.]*', true_scenario).group(0)
         predicted_scenario = gpt2.generate(sess, prefix = prefix, \
             run_name=run_name, truncate =truncate,return_as_list=True,\
@@ -59,11 +60,13 @@ if __name__=="__main__":
     run_name = 'common_nouns'
     gpt2.load_gpt2(sess,run_name=run_name)
     start = time.time()
-    results_dic = conduct_tests(np.arange(1,15), np.arange(2,6),sess,gpt2,\
-        run_name, 'common_nouns', test_cases = 5)
+    results_dic = conduct_tests(np.arange(1,2), np.arange(2,3),sess,gpt2,\
+        run_name, 'common_nouns',testing=True)
+    #results_dic = conduct_tests(np.arange(1,20), np.arange(2,6),sess,gpt2,\
+    #    run_name, 'common_nouns')
     print('Took {} seconds to test'.format(time.time() - start))
 
-    file_name = 'results_dic.p'
+    file_name = 'results_dic_train_nouns.p'
     f = open(file_name, 'wb')
     pickle.dump(results_dic, f)
     f.close()

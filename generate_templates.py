@@ -100,6 +100,7 @@ def generate_lists(n_objects, n_containers, obj_type,test=False):
     """
 
     #Generate a number of blocks between 2 and 10 but excluding 5
+    print(test)
     lists = [[] for i in range(n_containers)]
     if obj_type == 'blocks':
         for i in range(n_objects):
@@ -149,7 +150,7 @@ def generate_scenario(n_objects,n_containers,obj_type,test=False):
         str -- Description of initial state, action, and final state
     """
     
-    lists = generate_lists(n_objects,n_containers,obj_type)
+    lists = generate_lists(n_objects,n_containers,obj_type, test=test)
     list_names = []
     if obj_type == 'blocks':
         list_names = ['bin {}'.format(str(i)) for i in np.arange(n_containers)]

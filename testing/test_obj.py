@@ -78,7 +78,9 @@ if __name__=="__main__":
         run_name, 'common_nouns', testing=testing, test_cases = test_cases)
     print('Took {} seconds to test'.format(time.time() - start))
 
-    file_name = 'results_dic_train_nouns_{}_objects.p'.format(n_objects[0])
+    file_name = 'results_dic_{}_nouns_{}_objects.p'.format(
+        'test' if testing else 'train',n_objects[0]
+        )
     f = open(file_name, 'wb')
     pickle.dump(results_dic, f)
     f.close()

@@ -1,6 +1,5 @@
 import random as random
 import numpy as np
-from tqdm import tqdm
 
 def list_to_nl(list_name, list_in):
     """This function converts a list representing a bin and the blocks it contains to 
@@ -180,7 +179,7 @@ def generate_dataset(n_scenarios, obj_type):
         f = open('data/blockworld.txt', 'w')
     elif obj_type == 'common_nouns':
         f = open('data/objworld.txt', 'w')
-    for i in tqdm(range(n_scenarios)):
+    for i in range(n_scenarios):
         n_objects = random.randint(2,10)
         n_containers = random.randint(2,4)
         scenario = generate_scenario(n_objects,n_containers,obj_type)

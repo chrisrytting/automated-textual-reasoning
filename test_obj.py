@@ -1,5 +1,6 @@
 import generate_templates as gt
 import re
+import pickle
 
 def conduct_tests(
     n_objs_to_test, 
@@ -67,9 +68,49 @@ def conduct_test_across_checkpoints(checkpoint_list,n_objs, n_containers,sess,gp
             n_objs, n_containers, checkpoint, result_dic['score']))
         results_dic['{}_objs_{}_containers_{}_checkpoint'.format(n_objs,n_containers,checkpoint)] = result_dic
     return results_dic
-            
+
+def score_dic_on_substrings(result_dic, n_cases):
+    #There are multiple containers in each result_dic
+    container_scores = []
+    for container_key in result_dic.keys():
+        #There are multiple test cases for each container
+        case_dic = result_dic[container_key]
+        case_scores = []
+        for i in range(n_cases):
+            true_scenario = case_dic['true_scenario_{}'.format(i)]
+            prefix = case_dic['prefix_{}'.format(i)]
+            generated_scenario = case_dic['predicted_scenario_{}'.format(i)]
+            true_fs = true_scenario.replace(prefix,'')
+            true_fs_components = true_fs.split('.')[1:-1]
+            generated_fs = generated_scenario.replace(prefix,'')
+            score = 0.0
+            for true_fs_component in true_fs_components:
+                if true_fs_component in generated_fs:
+                    print(true_fs_component)
+                    score += 1
+            score /= len(true_fs_components)
+            case_scores.append(score)
+        container_score = sum(case_scores) / n_cases
+        container_scores.append(container_score)
+    score = sum(container_scores) / len(result_dic.keys())
+    return score
+
+def score_pickle(pickle_name):
+    result_dic = load_pickle(pickle_name)
+    score = score_dic_on_substrings(result_dic, 19)
+    return score
+
+    
+
+def load_pickle(pickle_name):
+    result = pickle.load(open(pickle_name, 'rb'))
+    return result
+
+def dump_pickle(thing, pickle_name):
+    return pickle.dump(thing, open(pickle_name, 'wb'))
         
 
+            
         
         
 

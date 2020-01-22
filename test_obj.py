@@ -1,6 +1,7 @@
 import generate_templates as gt
 import re
 import pickle
+import numpy as np
 
 def conduct_tests(
     n_objs_to_test, 
@@ -69,48 +70,60 @@ def conduct_test_across_checkpoints(checkpoint_list,n_objs, n_containers,sess,gp
         results_dic['{}_objs_{}_containers_{}_checkpoint'.format(n_objs,n_containers,checkpoint)] = result_dic
     return results_dic
 
-def score_dic_on_substrings(result_dic, n_cases):
+def score_dic_on_substrings(result_dic, n_containers, n_test_cases = 20):
     #There are multiple containers in each result_dic
-    container_scores = []
-    for container_key in result_dic.keys():
-        #There are multiple test cases for each container
-        case_dic = result_dic[container_key]
         case_scores = []
-        for i in range(n_cases):
-            true_scenario = case_dic['true_scenario_{}'.format(i)]
-            prefix = case_dic['prefix_{}'.format(i)]
-            generated_scenario = case_dic['predicted_scenario_{}'.format(i)]
+        for i in range(n_test_cases):
+            true_scenario = result_dic['true_scenario_{}'.format(i)]
+            prefix = result_dic['prefix_{}'.format(i)]
+            generated_scenario = result_dic['predicted_scenario_{}'.format(i)]
             true_fs = true_scenario.replace(prefix,'')
             true_fs_components = true_fs.split('.')[1:-1]
             generated_fs = generated_scenario.replace(prefix,'')
             score = 0.0
             for true_fs_component in true_fs_components:
                 if true_fs_component in generated_fs:
-                    print(true_fs_component)
+                #    print(true_fs_component, ' is inside')
                     score += 1
-            score /= len(true_fs_components)
+                #else:
+                #    print(true_fs_component, ' is outside')
+       	    score /= len(true_fs_components)
             case_scores.append(score)
-        container_score = sum(case_scores) / n_cases
-        container_scores.append(container_score)
-    score = sum(container_scores) / len(result_dic.keys())
-    return score
+            case_score_mean = np.mean(case_scores)
+        return case_score_mean
+
+def gather_scores_for_dics(n_objs_list, n_containers_list, experiment_name, n_test_cases, other='', testing = False):
+    accuracies = np.ones((len(n_containers_list), len(n_objs_list))) * -1
+    for i,n_objs in enumerate(n_objs_list):
+        pickle_name = 'results/{}/results_dic_{}_nouns_{}_objects{}.p'.format(experiment_name,'test' if testing else 'train', n_objs,other)
+        results_dic = load_pickle(pickle_name)
+        for j,n_containers in enumerate(n_containers_list):
+            key_name = '{}_objs_{}_containers'.format(n_objs,n_containers)
+            result_dic = results_dic[key_name]
+            score = score_dic_on_substrings(result_dic, n_containers,n_test_cases=n_test_cases)
+            #print(score)
+            accuracies[j,i] = score
+            #print(accuracies)
+    return accuracies
+
 
 def score_pickle(pickle_name):
     result_dic = load_pickle(pickle_name)
     score = score_dic_on_substrings(result_dic, 19)
     return score
 
-    
-
 def load_pickle(pickle_name):
+    """Loads a pickle"""
     result = pickle.load(open(pickle_name, 'rb'))
     return result
 
 def dump_pickle(thing, pickle_name):
+    """Dumps thing into pickle_name"""
     return pickle.dump(thing, open(pickle_name, 'wb'))
         
 
-            
+
+
         
         
 

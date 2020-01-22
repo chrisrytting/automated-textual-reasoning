@@ -3,6 +3,44 @@ import pickle
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+import test_obj as to
+
+def plot_heatmap_given(accuracies,title, xticklabels=None,yticklabels=None,save=None):
+    ax = sns.heatmap(accuracies[::-1,:], 
+        square=True,
+        xticklabels=xticklabels,
+        yticklabels=yticklabels[::-1],
+        vmin = 0.0,
+        vmax=1.0)
+    ax.add_patch(Rectangle((0, 2), 8, 2, fill=False, edgecolor='blue', lw=3))
+
+    plt.xlabel('Number of Objects')
+    plt.ylabel('Number of Containers')
+    plt.title(title)
+    if save:
+        plt.savefig(save)
+    plt.show()
+
+def substring_accuracy_for_all_experiments(testing=False):
+    experiment_names = 'experiment_1 experiment_2 experiment_3 experiment_4'.split()
+    other_names = ['', '_0.7_temp', '_0.3_temp', '_0.01_temp']
+    n_test_case_list = [20,10,10,10]
+
+    for i in range(4):
+        experiment_name=experiment_names[i]
+        other = other_names[i]
+        n_test_cases = n_test_case_list[i]
+        substring_accuracy_for_experiment(experiment_name, n_test_cases, other=other, save='accuracy_fig_{}_{}.png'.format(
+            'test' if testing else 'train',experiment_name), testing=testing)
+
+def substring_accuracy_for_experiment(experiment_name,n_test_cases, other = '',save = None,testing=False):
+    n_objs_list = np.arange(1,20) 
+    n_containers_list = np.arange(2,6) 
+    accuracies = to.gather_scores_for_dics(n_objs_list, n_containers_list, experiment_name,n_test_cases,other=other)
+    plot_heatmap_given(accuracies, experiment_name, xticklabels=n_objs_list,
+    yticklabels=n_containers_list, save='substring_acc_{}_{}.png'.format(experiment_name,'test' if testing else 'train'))
+
+
 
 def accuracies_heatmap(n_objs_list,n_containers_list,testing=False,save=None):
     accuracies = np.ones((len(n_objs_list),len(n_containers_list))) * -1

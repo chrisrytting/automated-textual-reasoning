@@ -36,7 +36,7 @@ def substring_accuracy_for_all_experiments(testing=False):
 def substring_accuracy_for_experiment(experiment_name,n_test_cases, other = '',save = None,testing=False):
     n_objs_list = np.arange(1,20) 
     n_containers_list = np.arange(2,6) 
-    accuracies = to.gather_scores_for_dics(n_objs_list, n_containers_list, experiment_name,n_test_cases,other=other)
+    accuracies = to.gather_scores_for_dics(n_objs_list, n_containers_list, experiment_name,n_test_cases,other=other, testing=True)
     plot_heatmap_given(accuracies, experiment_name, xticklabels=n_objs_list,
     yticklabels=n_containers_list, save='substring_acc_{}_{}.png'.format(experiment_name,'test' if testing else 'train'))
 

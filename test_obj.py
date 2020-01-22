@@ -103,7 +103,7 @@ def gather_scores_for_dics(n_objs_list, n_containers_list, experiment_name, n_te
             score = score_dic_on_substrings(result_dic, n_containers,n_test_cases=n_test_cases)
             #print(score)
             accuracies[j,i] = score
-            #print(accuracies)
+    #print(accuracies)
     return accuracies
 
 

@@ -85,13 +85,12 @@ def generate_and_log_ops(n_ops, lists):
 
 
 # Randomly generate two lists of integers which represent blocks 
-def generate_lists(n_objects, n_containers, obj_type,test=False):
+def generate_lists(n_objects, n_containers, test=False):
     """Randomly generate two lists of integers which represent blocks
 
     Arguments:
         n_objects -- number of objects to generate
         n_containers -- number of containers to place objects in
-        obj_type -- whether we want objects to be labeled as digits 'blocks' or common nouns 'common_nouns'
 
     
     Returns:
@@ -100,30 +99,25 @@ def generate_lists(n_objects, n_containers, obj_type,test=False):
 
     #Generate a number of blocks between 2 and 10 but excluding 5
     lists = [[] for i in range(n_containers)]
-    if obj_type == 'blocks':
-        for i in range(n_objects):
-            random.choice(lists).append(i)
-    elif obj_type == 'common_nouns':
-        if test:
-            filename = 'data/common_nouns_test.txt'
-        else:
-            filename = 'data/common_nouns_train.txt'
+    if test:
+        filename = 'data/little_nounlist_test.txt'
+    else:
+        filename = 'data/little_nounlist_train.txt'
 
-        with open(filename, 'r') as f:
-            #Grab words from file and close it
-            all_words = f.readlines()
-            f.close()
-            #Only keep n_objects of the words and strip whitespace
-            kept_words = random.sample(all_words, n_objects)
-            words = [word.strip() for word in kept_words]
-
-            #Add proper article a/an
-            for word in words:
-                if word[0] in list('aeiou'):
-                    word = 'an {}'.format(word)
-                else:
-                    word = 'a {}'.format(word)
-                random.choice(lists).append(word)
+    with open(filename, 'r') as f:
+        #Grab words from file and close it
+        all_words = f.readlines()
+        f.close()
+        #Only keep n_objects of the words and strip whitespace
+        kept_words = random.sample(all_words, n_objects)
+        words = [word.strip() for word in kept_words]
+        #Add proper article a/an
+        for word in words:
+            if word[0] in list('aeiou'):
+                word = 'an {}'.format(word)
+            else:
+                word = 'a {}'.format(word)
+            random.choice(lists).append(word)
     return lists
 
 def gen_nl_descriptions(lists,list_names):
@@ -136,29 +130,26 @@ def gen_nl_descriptions(lists,list_names):
     return [list_to_nl(list_names[i], lists[i]) for i in range(len(lists))]
 
 # Perform random operations on that list, coming up with NL descriptions of those operations 
-def generate_scenario(n_objects,n_containers,obj_type,test=False):
+def generate_scenario(n_objects,n_containers,testing_conts=False,
+    testing_nouns=False):
     """Generate random lists, a NL expression describing it, perform an operation on it and describe it in NL, and describe the final state.
 
     Arguments:
         n_objects {int} -- number of objects to generate
         n_containers {int}-- number of containers to sort objects into
-        obj_type {str} -- type of object we want in bins. 'blocks' for digits, 'common_nouns' for common nouns.
 
     Returns:
         str -- Description of initial state, action, and final state
     """
     
-    lists = generate_lists(n_objects,n_containers,obj_type, test=test)
+    lists = generate_lists(n_objects,n_containers, test=testing_nouns)
     list_names = []
-    if obj_type == 'blocks':
-        list_names = ['bin {}'.format(str(i)) for i in np.arange(n_containers)]
-    elif obj_type == 'common_nouns':
-        if not test:
-            container_names = ['box', 'bin', 'crate', 'tub', 'jar']
-            list_names = random.sample(container_names,n_containers)
-        else:
-            container_names = 'tray sack hole bag room'.split()
-            list_names = random.sample(container_names,n_containers)
+    if not testing_conts:
+        container_names = 'box bin crate tub jar bowl case basket bag'.split()
+        list_names = random.sample(container_names,n_containers)
+    else:
+        container_names = 'tray sack hole bag room drawer dumpster dish'.split()
+        list_names = random.sample(container_names,n_containers)
     random.shuffle(list_names)
     is_description = '. '.join(gen_nl_descriptions(lists, list_names))
     fs_lists, action_description = generate_and_log_op(list_names, lists)
@@ -167,22 +158,18 @@ def generate_scenario(n_objects,n_containers,obj_type,test=False):
     description += '.<END>'
     return description
 
-def generate_dataset(n_scenarios, obj_type):
+def generate_dataset(n_scenarios):
     """Write n scenarios to a text file
     
     Arguments:
         n {int} -- number of lines to write to a text file
-        obj_type {str} -- whether we want objects to be labeled as digits 'blocks' or common nouns 'common_nouns'
         n_scenarios {int} -- The number of scenarios we want to generate
     """
-    if obj_type == 'blocks':
-        f = open('data/blockworld.txt', 'w')
-    elif obj_type == 'common_nouns':
-        f = open('data/objworld.txt', 'w')
+    f = open('data/little_objworld.txt', 'w')
     for i in range(n_scenarios):
         n_objects = random.randint(2,10)
         n_containers = random.randint(2,4)
-        scenario = generate_scenario(n_objects,n_containers,obj_type)
+        scenario = generate_scenario(n_objects,n_containers)
         f.write(scenario + '\n')
     f.close()
     print('Successfully generated dataset')
@@ -190,7 +177,7 @@ def generate_dataset(n_scenarios, obj_type):
 if __name__=="__main__":
     import time
     start = time.time()
-    #generate_dataset(int(5e5), 'common_nouns')
+    generate_dataset(int(5e5))
     print("Took {} seconds".format(time.time() - start))
     
 

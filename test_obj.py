@@ -68,11 +68,9 @@ def conduct_test(
     testing_nouns=False,
     temperature = 0.1):
     """    
-    This function is designed to measure performance of a gpt2 model trained
-    on blockworld type scenarios where an initial state is given, an action is 
-    taken, and a final state is given. The task of this gpt2 is to see how 
-    well it can generate the final state given a true initial state and action
-    taken. 
+    Generates test cases given a gpt2 model, an initial state and an action. 
+    The generated dictionary contains the true scenario, the generated scenario,
+    the prefix and the score.
     
     Arguments:
         n_objs {int} -- number of objects in scenario
@@ -94,6 +92,7 @@ def conduct_test(
         match booleans for all test_cases, along with an average score which 
         is number of matches divided by number of test_cases.
     """
+
     truncate = '<END>'
     acc_count = 0.0
     result_dic = {}
@@ -130,6 +129,13 @@ def conduct_test(
 #            n_objs, n_containers, checkpoint, result_dic['score']))
 #        results_dic['{}_objs_{}_containers_{}_checkpoint'.format(n_objs,n_containers,checkpoint)] = result_dic
 #    return results_dic
+def extract_score(p_file):
+    """
+    Given a pickle with results for a given n_objs and n_containers, find the 
+    score for it
+    """
+    p_file = load_pickle(p_file)
+    return p_file['score']
 
 def score_dic_on_substrings(result_dic, n_containers, n_test_cases = 20):
     #There are multiple containers in each result_dic
@@ -167,6 +173,48 @@ def gather_scores_for_dics(n_objs_list, n_containers_list, experiment_name, n_te
     #print(accuracies)
     return accuracies
 
+def score_trajectory_given(n_containers, n_objs, test=False):
+    '''
+    Find scores across all checkpoints for a given n_containers/n_objs
+    '''
+    scores = []
+    for run_name in np.arange(10,3650,10):
+        curr_score = load_pickle('results_dic_night_before_600/'\
+                'results_dic_{}_{}_objs_{}_containers_600_nouns_{}.p'\
+                .format("test" if test else "train", n_objs, n_containers,\
+                run_name))['score']
+        scores.append(curr_score)
+    return scores
+
+def score_run(run_name, test = False):
+    '''
+    Find the average score across n_objs and n_containers for a given run
+    '''
+    scores = []
+    n_objs_list = np.arange(1,19)
+    n_containers_list = np.arange(2,6)
+    for n_objs in n_objs_list:
+        for n_containers in n_containers_list:
+            curr_score = load_pickle('results_dic_night_before_600/'\
+                    'results_dic_{}_{}_objs_{}_containers_600_nouns_{}.p'\
+                    .format("test" if test else "train", n_objs, n_containers,\
+                    run_name))['score']
+            scores.append(curr_score)
+    return np.mean(scores)
+
+def score_runs(test=False):
+    '''
+    Find the average score across n_objs and n_containers for a range of 
+    runs (this range is hard coded in for now)
+    '''
+    scores = []
+    run_name_list = np.arange(10,3500,10)
+    for run_name in run_name_list:
+        score = score_run(run_name, test = test)
+        scores.append(score)
+    return scores
+        
+        
 
 def score_pickle(pickle_name):
     result_dic = load_pickle(pickle_name)

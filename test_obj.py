@@ -137,29 +137,47 @@ def extract_score(p_file):
     p_file = load_pickle(p_file)
     return p_file['score']
 
-def score_dic_on_substrings(result_dic, n_containers, n_test_cases = 20):
-    #There are multiple containers in each result_dic
+def score_dic_on_substrings(result_dic, n_test_cases = 20):
+    """
+    Given a test case dictionary, score on substrings as opposed to exact 
+    equality
+    """
+
     case_scores = []
+
     for i in range(n_test_cases):
+
+        #Get each part of the true final state
         true_scenario = result_dic['true_scenario_{}'.format(i)]
         prefix = result_dic['prefix_{}'.format(i)]
-        generated_scenario = result_dic['predicted_scenario_{}'.format(i)]
         true_fs = true_scenario.replace(prefix,'')
         true_fs_components = true_fs.split('.')[1:-1]
+        
+        #Get the generated final state
+        generated_scenario = result_dic['predicted_scenario_{}'.format(i)]
         generated_fs = generated_scenario.replace(prefix,'')
+
+        # Find what proportion of the true final state elements are found in the 
+        # generated final state
         score = 0.0
         for true_fs_component in true_fs_components:
             if true_fs_component in generated_fs:
-            #    print(true_fs_component, ' is inside')
                 score += 1
-            #else:
-            #    print(true_fs_component, ' is outside')
         score /= len(true_fs_components)
         case_scores.append(score)
-        case_score_mean = np.mean(case_scores)
+
+    #Average over all test case scores
+    case_score_mean = np.mean(case_scores)
     return case_score_mean
 
-def gather_scores_for_dics(n_objs_list, n_containers_list, experiment_name, n_test_cases, other='', testing = False):
+def gather_scores_for_dics(
+        n_objs_list, 
+        n_containers_list, 
+        experiment_name, 
+        n_test_cases, 
+        other='', 
+        testing = False):
+
     accuracies = np.ones((len(n_containers_list), len(n_objs_list))) * -1
     for i,n_objs in enumerate(n_objs_list):
         pickle_name = 'results/{}/results_dic_{}_nouns_{}_objects{}.p'.format(experiment_name,'test' if testing else 'train', n_objs,other)
@@ -186,7 +204,7 @@ def score_trajectory_given(n_containers, n_objs, test=False):
         scores.append(curr_score)
     return scores
 
-def score_run(run_name, test = False):
+def score_run(run_name, substring = False, test = False):
     '''
     Find the average score across n_objs and n_containers for a given run
     '''
@@ -195,14 +213,19 @@ def score_run(run_name, test = False):
     n_containers_list = np.arange(2,6)
     for n_objs in n_objs_list:
         for n_containers in n_containers_list:
-            curr_score = load_pickle('results_dic_night_before_600/'\
+            result_dic = load_pickle('results_dic_night_before_600/'\
                     'results_dic_{}_{}_objs_{}_containers_600_nouns_{}.p'\
                     .format("test" if test else "train", n_objs, n_containers,\
-                    run_name))['score']
+                    run_name))
+            if substring:
+                curr_score = score_dic_on_substrings(
+                                        result_dic, n_test_cases = 1)
+            else:
+                curr_score = result_dic['score']
             scores.append(curr_score)
     return np.mean(scores)
 
-def score_runs(test=False):
+def score_runs(substring = False, test = False):
     '''
     Find the average score across n_objs and n_containers for a range of 
     runs (this range is hard coded in for now)
@@ -210,7 +233,7 @@ def score_runs(test=False):
     scores = []
     run_name_list = np.arange(10,3500,10)
     for run_name in run_name_list:
-        score = score_run(run_name, test = test)
+        score = score_run(run_name, substring = substring, test = test)
         scores.append(score)
     return scores
         

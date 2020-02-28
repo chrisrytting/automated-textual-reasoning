@@ -227,36 +227,46 @@ def score_trajectory_given(n_containers, n_objs, test=False):
         scores.append(curr_score)
     return scores
 
-def score_run(run_name, substring = False, test = False):
+def score_run(
+        run_dir,
+        checkpoint, 
+        n_objs_list = None,
+        n_containers_list = None,
+        substring = False, 
+        test = False):
     '''
     Find the average score across n_objs and n_containers for a given run
     '''
     scores = []
-    n_objs_list = np.arange(1,19)
-    n_containers_list = np.arange(2,6)
+    if not n_objs_list:
+        n_objs_list = np.arange(1,19)
+    if not n_containers_list:
+        n_containers_list = np.arange(2,6)
     for n_objs in n_objs_list:
         for n_containers in n_containers_list:
-            result_dic = load_pickle('results_dic_night_before_600/'\
+            result_dic = load_pickle('{}/'\
                     'results_dic_{}_{}_objs_{}_containers_600_nouns_{}.p'\
-                    .format("test" if test else "train", n_objs, n_containers,\
-                    run_name))
+                    .format(run_dir, "test" if test else "train", n_objs, 
+                        n_containers, checkpoint))
             if substring:
-                curr_score = score_dic_on_substrings(
-                                        result_dic, n_test_cases = 1)
+                curr_score = result_dic['substr_score'] 
             else:
                 curr_score = result_dic['score']
             scores.append(curr_score)
     return np.mean(scores)
 
-def score_runs(substring = False, test = False):
+def score_runs(run_dir, checkpoint_list, n_objs_list = None, 
+        n_containers_list = None, 
+        substring = False, test = False):
     '''
     Find the average score across n_objs and n_containers for a range of 
     runs (this range is hard coded in for now)
     '''
     scores = []
-    run_name_list = np.arange(10,3500,10)
-    for run_name in run_name_list:
-        score = score_run(run_name, substring = substring, test = test)
+    for checkpoint in checkpoint_list:
+        score = score_run(run_dir, checkpoint, n_objs_list = n_objs_list, 
+                n_containers_list = n_containers_list, 
+                substring = substring, test = test)
         scores.append(score)
     return scores
         

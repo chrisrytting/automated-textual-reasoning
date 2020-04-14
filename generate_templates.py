@@ -85,12 +85,17 @@ def generate_and_log_ops(n_ops, lists):
 
 
 # Randomly generate two lists of integers which represent blocks 
-def generate_lists(n_objects, n_containers, test=False):
-    """Randomly generate two lists of integers which represent blocks
+def generate_lists(n_objects, 
+                   n_containers, 
+                   n_val_nouns = 0,
+                   test=False):
+    """
+    Randomly generate two lists of integers which represent blocks
 
     Arguments:
         n_objects -- number of objects to generate
         n_containers -- number of containers to place objects in
+        n_val_nouns {int} -- number of validation nouns to include
 
     
     Returns:
@@ -104,12 +109,22 @@ def generate_lists(n_objects, n_containers, test=False):
     else:
         filename = 'data/little_nounlist_train.txt'
 
+    val_words = [] 
+    if n_val_nouns > 0:
+        with open('data/little_nounlist_test.txt', 'r') as f:
+            val_words = f.readlines()
+            f.close()
+            val_words = random.sample(val_words, n_val_nouns)
+
     with open(filename, 'r') as f:
         #Grab words from file and close it
         all_words = f.readlines()
         f.close()
         #Only keep n_objects of the words and strip whitespace
         kept_words = random.sample(all_words, n_objects)
+        kept_words = kept_words[:-n_val_nouns]
+        kept_words += val_words
+        random.shuffle(kept_words)
         words = [word.strip() for word in kept_words]
         #Add proper article a/an
         for word in words:
@@ -130,8 +145,11 @@ def gen_nl_descriptions(lists,list_names):
     return [list_to_nl(list_names[i], lists[i]) for i in range(len(lists))]
 
 # Perform random operations on that list, coming up with NL descriptions of those operations 
-def generate_scenario(n_objects,n_containers,testing_conts=False,
-    testing_nouns=False):
+def generate_scenario(n_objects,
+                      n_containers, 
+                      n_val_nouns = 0, 
+                      testing_conts=False,
+                      testing_nouns=False):
     """Generate random lists, a NL expression describing it, perform an operation on it and describe it in NL, and describe the final state.
 
     Arguments:
@@ -142,7 +160,10 @@ def generate_scenario(n_objects,n_containers,testing_conts=False,
         str -- Description of initial state, action, and final state
     """
     
-    lists = generate_lists(n_objects,n_containers, test=testing_nouns)
+    lists = generate_lists(n_objects, 
+                           n_containers, 
+                           n_val_nouns = n_val_nouns,
+                           test = testing_nouns)
     list_names = []
     if not testing_conts:
         container_names = 'box bin crate tub jar bowl case basket bag'.split()

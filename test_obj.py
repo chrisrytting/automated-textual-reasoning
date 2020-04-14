@@ -2,6 +2,7 @@ import generate_templates as gt
 import re
 import pickle
 import numpy as np
+import os
 
 def conduct_tests(
     n_objs_to_test, 
@@ -66,6 +67,7 @@ def conduct_test(
     test_cases=10, 
     testing_conts=False,
     testing_nouns=False,
+    n_val_nouns=0,
     temperature = 0.1):
     """    
     Generates test cases given a gpt2 model, an initial state and an action. 
@@ -78,6 +80,7 @@ def conduct_test(
         sess {?} -- sess object started in tensorflow
         gpt2 {module?} -- trained gpt2 model with loaded weights
         run_name {str} -- which checkpoint folder gpt2 is loaded from
+        step {str} -- 
     
     Keyword Arguments:
         testing {bool} -- whether or not to test on validation nouns or training
@@ -95,26 +98,46 @@ def conduct_test(
 
     truncate = '<END>'
     acc_count = 0.0
+    substr_score_total = 0.0
     result_dic = {}
     for i in range(test_cases):
         true_scenario = gt.generate_scenario(
-            n_objs, n_containers,testing_conts = testing_conts,
+            n_objs, 
+            n_containers,
+            n_val_nouns = n_val_nouns,
+            testing_conts = testing_conts,
             testing_nouns = testing_nouns)
-        prefix = re.search('.*Took[^\.]*', true_scenario).group(0)
+        prefix = re.search('.*Took[^/.]*', true_scenario).group(0)
+        true_fs = true_scenario.replace(prefix,'')
+        true_fs_components = true_fs.split('.')[1:-1]
+
         predicted_scenario = gpt2.generate(sess, prefix = prefix, \
             run_name=run_name, truncate =truncate,return_as_list=True,\
                 temperature = temperature)[0] + truncate
+        predicted_fs = predicted_scenario.replace(prefix,'')
+        #Exact equality check
         match = true_scenario == predicted_scenario
+
+        #Score on substrings
+        substr_score = 0.0
+        for true_fs_component in true_fs_components:
+            if true_fs_component in predicted_fs:
+                substr_score += 1
+        substr_score /= len(true_fs_components)
 
         #Log results in a dic
         result_dic['true_scenario_{}'.format(i)] = true_scenario
         result_dic['prefix_{}'.format(i)] = prefix
         result_dic['predicted_scenario_{}'.format(i)] = predicted_scenario
         result_dic['match_{}'.format(i)] = match
+
+        substr_score_total += substr_score
         if match:
             acc_count += 1
-    score = acc_count / test_cases
-    result_dic['score'] = score
+    exeq_score = acc_count / test_cases
+    mean_substr_score = substr_score_total / test_cases
+    result_dic['score'] = exeq_score
+    result_dic['substr_score'] = mean_substr_score
     return result_dic
 
 ##Realized this wont work because you have to start a new python session every time you make a new model.
@@ -204,36 +227,46 @@ def score_trajectory_given(n_containers, n_objs, test=False):
         scores.append(curr_score)
     return scores
 
-def score_run(run_name, substring = False, test = False):
+def score_run(
+        run_dir,
+        checkpoint, 
+        n_objs_list = None,
+        n_containers_list = None,
+        substring = False, 
+        test = False):
     '''
     Find the average score across n_objs and n_containers for a given run
     '''
     scores = []
-    n_objs_list = np.arange(1,19)
-    n_containers_list = np.arange(2,6)
+    if not n_objs_list:
+        n_objs_list = np.arange(1,19)
+    if not n_containers_list:
+        n_containers_list = np.arange(2,6)
     for n_objs in n_objs_list:
         for n_containers in n_containers_list:
-            result_dic = load_pickle('results_dic_night_before_600/'\
+            result_dic = load_pickle('{}/'\
                     'results_dic_{}_{}_objs_{}_containers_600_nouns_{}.p'\
-                    .format("test" if test else "train", n_objs, n_containers,\
-                    run_name))
+                    .format(run_dir, "test" if test else "train", n_objs, 
+                        n_containers, checkpoint))
             if substring:
-                curr_score = score_dic_on_substrings(
-                                        result_dic, n_test_cases = 1)
+                curr_score = result_dic['substr_score'] 
             else:
                 curr_score = result_dic['score']
             scores.append(curr_score)
     return np.mean(scores)
 
-def score_runs(substring = False, test = False):
+def score_runs(run_dir, checkpoint_list, n_objs_list = None, 
+        n_containers_list = None, 
+        substring = False, test = False):
     '''
     Find the average score across n_objs and n_containers for a range of 
     runs (this range is hard coded in for now)
     '''
     scores = []
-    run_name_list = np.arange(10,3500,10)
-    for run_name in run_name_list:
-        score = score_run(run_name, substring = substring, test = test)
+    for checkpoint in checkpoint_list:
+        score = score_run(run_dir, checkpoint, n_objs_list = n_objs_list, 
+                n_containers_list = n_containers_list, 
+                substring = substring, test = test)
         scores.append(score)
     return scores
         
@@ -268,6 +301,8 @@ if __name__=="__main__":
     parser.add_argument('--test_cases', type=int)
     parser.add_argument('--step')
     parser.add_argument('--run_name')
+    parser.add_argument('--save_dir')
+    parser.add_argument('--n_val_nouns', type=int)
     parser.add_argument('--testing', action='store_true')
     args = parser.parse_args()
     
@@ -285,10 +320,9 @@ if __name__=="__main__":
     testing = args.testing
     test_cases = args.test_cases
     step = args.step
-    print('This is the step in the program ', step)
 	
     sess = gpt2.start_tf_sess()
-    gpt2.load_gpt2(sess,run_name=run_name, step=step)
+    gpt2.load_gpt2(sess,run_name=run_name)
     #results_dic = conduct_tests(n_objects, n_containers, sess, gpt2,\
     #    run_name, testing_conts=testing, testing_nouns = testing, 
     #    test_cases = test_cases)
@@ -303,16 +337,24 @@ if __name__=="__main__":
                 gpt2,
                 run_name,
                 step=step,
+                n_val_nouns = args.n_val_nouns,
                 testing_conts = testing,
                 testing_nouns = testing,
                 test_cases = test_cases)
-            file_name = 'results_dic_{}_{}_objs_{}_containers_{}_{}.p'.format(
+            filename = '{}/results_dic_{}_{}_objs_{}_containers_{}_{}.p'.format(
+                args.save_dir,
                 'test' if testing else 'train',
                 n_objects,
                 n_containers,
                 run_name,
                 step)
-            f = open(file_name, 'wb')
+            if not os.path.exists(os.path.dirname(filename)):
+                try:
+                    os.makedirs(os.path.dirname(filename))
+                except OSError as exc:
+                    if exc.errno != errno.EEXIST:
+                        raise
+            f = open(filename, 'wb')
             pickle.dump(result_dic, f)
             f.close()
             print('Took {} seconds to test {} objects {} containers'.format(

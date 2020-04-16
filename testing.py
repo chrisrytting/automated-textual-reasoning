@@ -6,33 +6,71 @@ import pickle
 import numpy as np
 import os
 
-def compare_txt_files(targettxt, predtxt):
+def compare_txt_files(targettxt, predtxt, n_objs_range, n_conts_range, n=100):
+    """
+    This function compares a target txt file and a predictions txt file and 
+    returns a dict with 
+
+    Arguments:
+
+    targettxt {str} -- target text file path
+    predtxt {str} -- predictions text file path
+    n {int} -- number of instances for each combination of n_objs and n_conts
+    n_objs_range {list} -- list of values of n_objs
+    n_conts_range {list} -- list of values of n_conts
+
+    Returns:
+
+    score_dict {dict} -- contains scores for each combination of n_objs and 
+    n_conts
+    """
+
     with open(targettxt, 'r') as targetfile, open(predtxt, 'rb') as predfile:
         targets = targetfile.readlines()
         preds = predfile.readlines()
-        running_bleu = 0.0
-        running_exact_match = 0.0
-        running_substr_match = 0.0
-        n = len(targets)
-        for i in range(n):
-            target = targets[i][:-6].lower()
-            pred = preds[i].decode()[4:-20].lower()
-            running_bleu += t5.evaluation.metrics.bleu([target], [pred])['bleu']
-            if pred == target:
-                running_exact_match += 1.0
-            ind_substr_match_count = 0.0
-            substrs = pred.split('.')[:-1]
-            n_substrs = len(substrs)
-            for token in substrs:
-                if token.strip() in target:
-                    ind_substr_match_count+=1.0
-            ind_substr_match_ratio = ind_substr_match_count / n_substrs
-            running_substr_match += ind_substr_match_ratio
-            
-        avg_bleu = running_bleu / n
-        avg_exact_score = running_exact_match / n
-        avg_substr_match = running_substr_match / n
-        return avg_bleu, avg_exact_score, avg_substr_match
+
+        n_objs_bins = len(n_objs_range)
+        n_conts_bins = len(n_conts_range)
+
+        scores_dic = {}
+
+        assert (len(targets) / n_objs_bins / n_conts_bins) == n
+        for i, n_objs in enumerate(n_objs_range):
+            for j, n_conts in enumerate(n_conts_range):
+                running_bleu = 0.0
+                running_exact_match = 0.0
+                running_substr_match = 0.0
+                for k in range(n):
+                    #print(f"\nIteration {k}\n")
+                    ix = 100*(4*i+j) + k
+                    #print(i,j,ix)
+                    target = targets[ix][:-6].lower()
+                    pred = preds[ix].decode()[4:-20].lower()
+                    #print(pred) 
+                    #print(target) 
+                    running_bleu += t5.evaluation.metrics.bleu(
+                                                  [target], [pred])['bleu']
+                    if pred == target:
+                        running_exact_match += 1.0
+                    ind_substr_match_count = 0.0
+                    substrs = pred.split('.')[:-1]
+                    n_substrs = len(substrs)
+                    for token in substrs:
+                        if token.strip() in target:
+                            ind_substr_match_count+=1.0
+                    ind_substr_match_ratio = ind_substr_match_count / n_substrs
+                    running_substr_match += ind_substr_match_ratio
+                    
+                avg_bleu = running_bleu / n
+                avg_exact_score = running_exact_match / n
+                avg_substr_match = running_substr_match / n
+                scores_dic_key = f"{n_objs}objs{n_conts}conts"
+                scores_dic[scores_dic_key] = {}
+                scores_dic[scores_dic_key]["avg_bleu"] = avg_bleu
+                scores_dic[scores_dic_key]["avg_exact_score"] = avg_exact_score
+                scores_dic[scores_dic_key]["avg_substr_match"] = avg_substr_match
+
+        return scores_dic
 
         
 

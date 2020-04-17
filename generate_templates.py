@@ -91,53 +91,40 @@ def generate_and_log_ops(n_ops, lists):
 
 
 # Randomly generate two lists of integers which represent blocks
-def generate_lists(n_objects, n_containers, n_val_nouns=0, test=False):
-    """
-    Randomly generate two lists of integers which represent blocks
+def generate_lists(
+    n_objects,
+    n_containers,
+    data_dir="/mnt/pccfs/backed_up/crytting/nlrl/data/",
+    obj_name_file="obj_train_n398.txt",
+):
+    """Randomly generate two lists of integers which represent blocks
 
     Arguments:
         n_objects -- number of objects to generate
         n_containers -- number of containers to place objects in
-        n_val_nouns {int} -- number of validation nouns to include
+        data_dir -- directory where obj_name_file is found
+        obj_name_file -- name of file containing object names to use.
 
-    
     Returns:
-        tuple of lists -- first bin of blocks and second bin of blocks
+        tuple of lists -- bins of objects 
     """
 
     # Generate a number of blocks between 2 and 10 but excluding 5
     lists = [[] for i in range(n_containers)]
-    if test:
-        filename = "data/little_nounlist_test.txt"
-    else:
-        filename = "data/little_nounlist_train.txt"
 
-    val_words = []
-    if n_val_nouns is not None:
-        if n_val_nouns > 0:
-            with open("data/little_nounlist_test.txt", "r") as f:
-                val_words = f.readlines()
-                f.close()
-                val_words = random.sample(val_words, n_val_nouns)
-
-    with open(filename, "r") as f:
+    with open(os.path.join(data_dir, obj_name_file), "r") as f:
         # Grab words from file and close it
         all_words = f.readlines()
-        f.close()
         # Only keep n_objects of the words and strip whitespace
-        kept_words = random.sample(all_words, n_objects)
-        if n_val_nouns > 0:
-            kept_words = kept_words[:-n_val_nouns]
-        kept_words += val_words
-        random.shuffle(kept_words)
-        words = [word.strip() for word in kept_words]
-        # Add proper article a/an
-        for word in words:
-            if word[0] in list("aeiou"):
-                word = "an {}".format(word)
-            else:
-                word = "a {}".format(word)
-            random.choice(lists).append(word)
+    kept_words = random.sample(all_words, n_objects)
+    words = [word.strip() for word in kept_words]
+    # Add proper article a/an
+    for word in words:
+        if word[0] in list("aeiou"):
+            word = "an {}".format(word)
+        else:
+            word = "a {}".format(word)
+        random.choice(lists).append(word)
     return lists
 
 
@@ -145,15 +132,22 @@ def gen_nl_descriptions(lists, list_names):
     """# Generate a NL description of it
     
     Arguments:
-        list_1 {int} -- Bin 1
-        list_2 {int} -- Bin 2
+        lists -- list of lists of objects
+        list_names -- list of names corresponding to lists
+
+    Returns:
+        list of nl expressions of the lists
     """
     return [list_to_nl(list_names[i], lists[i]) for i in range(len(lists))]
 
 
 # Perform random operations on that list, coming up with NL descriptions of those operations
 def generate_scenario(
-    n_objects, n_containers, n_val_nouns=0, testing_conts=False, testing_nouns=False
+    n_objects,
+    n_containers,
+    data_dir="/mnt/pccfs/backed_up/crytting/nlrl/data",
+    cont_name_file="cont_train_n9.txt",
+    obj_name_file="obj_train_n398.txt",
 ):
     """Generate random lists, a NL expression describing it, perform an operation on it and describe it in NL, and describe the final state.
 

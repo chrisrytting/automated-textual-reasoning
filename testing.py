@@ -1,3 +1,4 @@
+#The newer version of test.py
 import generate_templates as gt
 import t5
 import time
@@ -31,10 +32,13 @@ def compare_txt_files(targettxt, predtxt, n_objs_range, n_conts_range, n=100):
 
         n_objs_bins = len(n_objs_range)
         n_conts_bins = len(n_conts_range)
+        n_bins = n_objs_bins * n_conts_bins
 
         scores_dic = {}
 
         assert (len(targets) / n_objs_bins / n_conts_bins) == n
+
+        running_bleu_all, running_exact_all, running_substr_all = 0.0, 0.0, 0.0
         for i, n_objs in enumerate(n_objs_range):
             for j, n_conts in enumerate(n_conts_range):
                 running_bleu = 0.0
@@ -55,20 +59,30 @@ def compare_txt_files(targettxt, predtxt, n_objs_range, n_conts_range, n=100):
                     ind_substr_match_count = 0.0
                     substrs = pred.split('.')[:-1]
                     n_substrs = len(substrs)
+                    if n_substrs == 0:
+                        n_substrs = -1
                     for token in substrs:
                         if token.strip() in target:
                             ind_substr_match_count+=1.0
                     ind_substr_match_ratio = ind_substr_match_count / n_substrs
                     running_substr_match += ind_substr_match_ratio
                     
-                avg_bleu = running_bleu / n
+                avg_bleu = running_bleu / n / 100
                 avg_exact_score = running_exact_match / n
                 avg_substr_match = running_substr_match / n
+
                 scores_dic_key = f"{n_objs}objs{n_conts}conts"
                 scores_dic[scores_dic_key] = {}
                 scores_dic[scores_dic_key]["avg_bleu"] = avg_bleu
                 scores_dic[scores_dic_key]["avg_exact_score"] = avg_exact_score
                 scores_dic[scores_dic_key]["avg_substr_match"] = avg_substr_match
+
+                running_bleu_all += avg_bleu
+                running_exact_all += avg_exact_score
+                running_substr_all += avg_substr_match
+        scores_dic['avg_bleu_all'] = running_bleu_all / n_bins
+        scores_dic['avg_exact_all'] = running_exact_all / n_bins
+        scores_dic['avg_substr_all'] = running_substr_all / n_bins
 
         return scores_dic
 

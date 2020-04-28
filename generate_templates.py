@@ -1,4 +1,5 @@
 import random as random
+import string
 import t5
 import os
 import numpy as np
@@ -94,7 +95,8 @@ def generate_and_log_ops(n_ops, lists):
 def generate_lists(
     n_objects,
     n_containers,
-    data_dir="/mnt/pccfs/backed_up/crytting/nlrl/data/",
+    data_dir="/nlrl/data/",
+    mnt_dir="/mnt/pccfs/backed_up/crytting/",
     obj_name_file="obj_train_n398.txt",
 ):
     """Randomly generate two lists of integers which represent blocks
@@ -108,6 +110,8 @@ def generate_lists(
     Returns:
         tuple of lists -- bins of objects 
     """
+    if not os.path.exists(data_dir):
+        data_dir = os.path.join(mnt_dir, data_dir)
 
     # Generate a number of blocks between 2 and 10 but excluding 5
     lists = [[] for i in range(n_containers)]
@@ -145,7 +149,8 @@ def gen_nl_descriptions(lists, list_names):
 def generate_scenario(
     n_objects,
     n_containers,
-    data_dir="/mnt/pccfs/backed_up/crytting/nlrl/data",
+    data_dir="/nlrl/data",
+    mnt_dir="/mnt/pccfs/backed_up/crytting/",
     cont_name_file="cont_train_n9.txt",
     obj_name_file="obj_train_n398.txt",
 ):
@@ -158,18 +163,17 @@ def generate_scenario(
     Returns:
         str -- Description of initial state, action, and final state
     """
+    if not os.path.exists(data_dir):
+        data_dir = os.path.join(mnt_dir, data_dir)
 
     lists = generate_lists(
-        n_objects, n_containers, n_val_nouns=n_val_nouns, test=testing_nouns
+        n_objects, n_containers, data_dir=data_dir, obj_name_file=obj_name_file
     )
+
     list_names = []
-    if not testing_conts:
-        container_names = "box bin crate tub jar bowl case basket bag".split()
-        list_names = random.sample(container_names, n_containers)
-    else:
-        container_names = "tray sack hole bag room drawer dumpster dish".split()
-        list_names = random.sample(container_names, n_containers)
-    random.shuffle(list_names)
+    container_names = open(os.path.join(data_dir, cont_name_file), "r").readlines()
+    list_names = random.sample(container_names, n_containers)
+    list_names = [name.strip() for name in list_names]
     is_description = ". ".join(gen_nl_descriptions(lists, list_names))
     fs_lists, action_description = generate_and_log_op(list_names, lists)
     prefix = ". ".join([is_description, action_description])
@@ -178,12 +182,30 @@ def generate_scenario(
     return prefix, target
 
 
-def generate_scenarios(n, n_objs, n_conts, save_dir=None):
+def generate_scenarios(
+    n_objs,
+    n_conts,
+    n=100,
+    save_dir="/nlrl/experiments/experiment1/testing",
+    data_dir="/nlrl/data",
+    mnt_dir="/mnt/pccfs/backed_up/crytting/",
+    cont_name_file="cont_train_n9.txt",
+    obj_name_file="obj_train_n398.txt",
+):
+    if not os.path.exists(data_dir):
+        save_dir = os.path.join(mnt_dir, save_dir)
+        data_dir = os.path.join(mnt_dir, data_dir)
     prefix_file = open(os.path.join(save_dir, f"prefixes.txt"), "a")
     raw_prefix_file = open(os.path.join(save_dir, f"raw_prefixes.txt"), "a")
     targets_file = open(os.path.join(save_dir, f"targets.txt"), "a")
     for i in range(n):
-        raw_prefix, target = generate_scenario(n_objs, n_conts)
+        raw_prefix, target = generate_scenario(
+            n_objs,
+            n_conts,
+            data_dir=data_dir,
+            cont_name_file=cont_name_file,
+            obj_name_file=obj_name_file,
+        )
         prefix = "initialstate&action: " + raw_prefix
 
         prefix_file.write(prefix + "\n")
@@ -191,14 +213,22 @@ def generate_scenarios(n, n_objs, n_conts, save_dir=None):
         targets_file.write(target + "\n")
 
 
-def generate_range_of_scenarios(n, n_objs_range, n_conts_range, experiment):
-    # Choose directory whether we're on pccfs or mounted to it in a docker
-    # container
-    default_exp_dir = "/mnt/pccfs/backed_up/crytting/nlrl/experiments"
-    exp_dir = (
-        default_exp_dir if os.path.exists(default_exp_dir) else "/nlrl/experiments"
-    )
-    testing_dir = os.path.join(exp_dir, experiment, "testing")
+def generate_range_of_scenarios(
+    n=100,
+    n_objs_range=np.arange(2, 20),
+    n_conts_range=np.arange(2, 6),
+    experiment="experiment1",
+    data_dir="/nlrl/data",
+    cont_name_file="cont_train_n9.txt",
+    obj_name_file="obj_train_n398.txt",
+):
+
+    mnt_dir="/mnt/pccfs/backed_up/crytting/"
+    exp_dir = '/nlrl/experiments/'
+    if not os.path.exists(exp_dir):
+        exp_dir = os.path.join(mnt_dir, exp_dir)
+        data_dir = os.path.join(mnt_dir, exp_dir)
+    testing_dir = os.path.join(exp_dir, experiment, 'testing')
 
     # Remove these txt files if they already exist.
     for txtfile in "prefixes.txt raw_prefixes.txt targets.txt".split():
@@ -207,15 +237,34 @@ def generate_range_of_scenarios(n, n_objs_range, n_conts_range, experiment):
 
     for n_objs in n_objs_range:
         for n_conts in n_conts_range:
-            generate_scenarios(n, n_objs, n_conts, save_dir=testing_dir)
-    desc = (
-        f"The prefixes, raw_prefixes, and targets files contained in"
-        + " {testing_dir} each contain {n} instances for each value of"
-        + " of n_objs in {n_objs_range} and n_conts in {n_conts_range}."
-        + " The n_conts increment before the n_objs do e.g. 2 objs, 2"
-        + " conts first,"
-        + " then 2 objs, 3 conts, etc."
-    )
+            generate_scenarios(
+                n_objs=n_objs,
+                n_conts=n_conts,
+                n=n,
+                save_dir=testing_dir,
+                data_dir=data_dir,
+                mnt_dir=mnt_dir,
+                cont_name_file=cont_name_file,
+                obj_name_file=obj_name_file,
+            )
+    desc = f'''
+    The scenarios of this experiment were generated using 
+    {os.path.join(data_dir,cont_name_file)} for container names and using
+    {os.path.join(data_dir,obj_name_file)} for object names. For each 
+    combination of n_objs in {n_objs_range} and n_conts in {n_conts_range}, 
+    there are {n} instances. The n_conts increment before the n_objs do e.g. 
+    2 objs, 2 conts first, then 2 objs, 3 conts, etc.'''
+    
+    #(
+
+    #    f"The prefixes, raw_prefixes, and targets files contained in"
+    #    + f" {testing_dir} each contain {n} instances for each value of"
+    #    + f" of n_objs in {n_objs_range} and n_conts in {n_conts_range}."
+    #    + " The n_conts increment before the n_objs do e.g. 2 objs, 2"
+    #    + " conts first,"
+    #    + " then 2 objs, 3 conts, etc."
+    #)
+
     with open(os.path.join(testing_dir, "desc.txt"), "w") as f:
         f.write(desc)
 
@@ -225,7 +274,7 @@ def predict_from_input_file(
     experiment,
     input_file,
     output_file,
-    checkpoint=-1,
+    checkpoints=-1,
     batch_size=16,
     temperature=0,
 ):
@@ -237,10 +286,14 @@ def predict_from_input_file(
     predict_outputs_path = os.path.join(
         "/nlrl/experiments/", experiment, f"testing/{output_file}"
     )
+
+    if isinstance(checkpoints, list):
+        checkpoints = [int(ckpt) for ckpt in checkpoints]
+
     model.predict(
         input_file=predict_inputs_path,
         output_file=predict_outputs_path,
-        checkpoint_steps=checkpoint,
+        checkpoint_steps=checkpoints,
         # Select the most probable output token at each step.
         temperature=temperature,
     )
@@ -249,7 +302,7 @@ def predict_from_input_file(
 def setup_t5_and_predict(
     input_file="prefixes.txt",
     output_file="predictions.txt",
-    checkpoint=-1,
+    checkpoints=[-1],
     model_parallelism=1,
     batch_parallelism=1,
     gpu_ids=[0],
@@ -257,14 +310,15 @@ def setup_t5_and_predict(
     train_batch_size=16,
     temperature=0.0,
 ):
+    checkpoints = list(checkpoints)
 
     model = t5.models.MtfModel(
         model_dir="/nlrl/models-t5/3B",
         tpu=None,
         mesh_shape=f"model:{model_parallelism},batch:{batch_parallelism}",
-        mesh_devices=[f"gpu:{gpu_id}" for gpu_id in gpu_ids],
+        mesh_devices=[f"gpu:{int(gpu_id)}" for gpu_id in gpu_ids],
         batch_size=train_batch_size,
-        sequence_length={"inputs": 200, "targets": 200},
+        sequence_length={"inputs": 250, "targets": 250},
         iterations_per_loop=100,
     )
 
@@ -273,7 +327,7 @@ def setup_t5_and_predict(
         experiment,
         input_file,
         output_file,
-        checkpoint=checkpoint,
+        checkpoints=checkpoints,
         temperature=temperature,
     )
 
@@ -293,6 +347,19 @@ def generate_dataset(n_scenarios, filepath, nolow=2, nohigh=10, nclow=2, nchigh=
         f.write(scenario + "\n")
     f.close()
     print("Successfully generated dataset")
+
+
+def generate_random_strings(
+    N=618, length=10, data_dir="/nlrl/data/", file_name="random_strings.txt"
+):
+    with open(os.path.join(data_dir,file_name),'a') as f:
+        for _ in range(N):
+            length = random.randint(3,15)
+            rs = "".join(random.choices(string.ascii_uppercase+string.digits+string.ascii_lowercase, k=length))
+            f.write(rs + '\n')
+
+
+
 
 
 if __name__ == "__main__":

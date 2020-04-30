@@ -1,7 +1,10 @@
 #!/bin/bash
 checkpoints=($(seq 1000000 100 1002500))
-checkpoints={1000000 100 1002500}
-experiments=(7 7_ 7_0 7_1)
+#checkpoints={1000000 100 1002500}
+#experiments=( 7 7_ 7_0 7_1)
+#models=( 3Blr0.03batch1 3Blr0.003batch1 3Blr0.3batch1 3Blr3.0batch1 )
+experiments=( 7_ 7_0 7_1)
+models=( 3Blr0.003batch1 3Blr0.3batch1 3Blr3.0batch1 )
 gpus=($(seq 2 15))
 n_checkpoints=${#checkpoints[@]}
 n_experiments=${#experiments[@]}
@@ -10,17 +13,20 @@ n_gpus=${#gpus[@]}
 for ((iter1=0;iter1<${#experiments[@]}; iter1++))
 do
     experiment=experiment${experiments[$iter1]}
+    model=${models[$iter1]}
     for ((iter2=0;iter2<${#checkpoints[@]}; iter2++))
     do
         checkpoint=${checkpoints[$iter2]}
         gpu_id=$((($iter1 * $n_checkpoints + $iter2) % $n_gpus))
         gpu=${gpus[$gpu_id]}
+        #echo $gpu $experiment $checkpoint /nlrl/models-t5/$model
 
         #Run training script
         CUDA_VISIBLE_DEVICES=$gpu python3 setup_t5_and_predict.py \
             --ckpt $checkpoint\
             --gpu_id 0\
-            --experiment $experiment &
+            --experiment $experiment \
+            --model_dir /nlrl/models-t5/$model &
 
         if [ $gpu -eq ${gpus[-1]} ]
         then
@@ -30,10 +36,7 @@ do
                 checkpoint $checkpoint
             wait
         fi
-
     done
-
-#Will I lose this?
 done
 
 

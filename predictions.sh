@@ -1,10 +1,10 @@
 #!/bin/bash
-checkpoints=($(seq 1000000 100 1002500))
+checkpoints=($(seq 1000000 100 1001000))
 #checkpoints={1000000 100 1002500}
 #experiments=( 7 7_ 7_0 7_1)
 #models=( 3Blr0.03batch1 3Blr0.003batch1 3Blr0.3batch1 3Blr3.0batch1 )
-experiments=( 7_ 7_0 7_1)
-models=( 3Blr0.003batch1 3Blr0.3batch1 3Blr3.0batch1 )
+experiments=( 9 10 11 12 13 14)
+models=( 3Blr0.003batch1 )
 gpus=($(seq 2 15))
 n_checkpoints=${#checkpoints[@]}
 n_experiments=${#experiments[@]}
@@ -13,7 +13,7 @@ n_gpus=${#gpus[@]}
 for ((iter1=0;iter1<${#experiments[@]}; iter1++))
 do
     experiment=experiment${experiments[$iter1]}
-    model=${models[$iter1]}
+    model=${models[0]}
     for ((iter2=0;iter2<${#checkpoints[@]}; iter2++))
     do
         checkpoint=${checkpoints[$iter2]}
@@ -22,6 +22,11 @@ do
         #echo $gpu $experiment $checkpoint /nlrl/models-t5/$model
 
         #Run training script
+        echo running setup and predict on \
+                gpu $gpu \
+                experiment $experiment \
+                checkpoint $checkpoint \
+                model $model
         CUDA_VISIBLE_DEVICES=$gpu python3 setup_t5_and_predict.py \
             --ckpt $checkpoint\
             --gpu_id 0\

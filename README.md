@@ -1,4 +1,4 @@
-# natural-language-assisted-rl
+# automated-textual-reasoning
 
 
 ### Potentially useful material

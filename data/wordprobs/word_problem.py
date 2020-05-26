@@ -2,27 +2,21 @@ import numpy as np
 
 def generate_word_problems(
         n_scenarios = 500,
-        experiment_type='interp_train',
-        targets_file = 'targets.txt',
-        prefixes_file = 'prefixes.txt',
         lines_file = 'lines.txt',
         names_file = 'names.txt',
         objects_file = 'objects.txt',
-        data_dir = 'data/wordprobs',
-        base_dir = '/mnt/pccfs/backed_up/crytting/nlrl'):
+        data_dir = 'data/wordprobs'):
     #TODO   Get the "answers" into prefix and target files.
-    #       What is the training set?
-    #       What is the validation set?
+    #Training set, scenarios with even objects up to 50
+    #Interpolation validation set, scenarios with odd objects up to 50
+    #Extrapolation validation set, scenarios with
+     
+     
+    training_choices = np.arange(1,51,2)
+    interp_choices = np.arange(0,52,2)
+    extrap_choices = np.arange(51,101)
+    print(training_choices, interp_choices, extrap_choices)
 
-    # there are 4 experiment_types interp_train, interp_val,
-    # extrap_train, extrap_val. These are parameterized by
-    # 
-
-    if not os.exists(base_dir):
-        base_dir = '/nlrl'
-    
-    data_dir = os.path.join(base_dir, data_dir)
-    
     with open(os.path.join(data_dir,names_file), "r") as f:
         names = f.read().split("\n")[:-1]
     
@@ -40,7 +34,7 @@ def generate_word_problems(
             person1, person2 = np.random.choice(names,2)
         
             object = np.random.choice(objects)
-        
+            
             n = np.random.randint(1, 100)
             c = np.random.randint(0, n)
         
@@ -59,7 +53,7 @@ def generate_word_problems(
 
 
         
+
             pfile.write(word_problem)
             tfile.write(exact_equation)
-            lfile.write(word_problem + " " + exact_equation)
-
+            lfile.write(word_problem + " " + exact_equation
